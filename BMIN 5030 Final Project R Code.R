@@ -1,0 +1,314 @@
+## Alyssa Altstaedter
+## 10-29-26
+## BMIN 5030/EPID 6000 Project
+
+## Title: Assessing Heat Vulnerability and Chronic Condition Prevalence in NYC: An Exploratory Analysis
+
+## Overview: This project explores the potential relationship between heat vulnerability and chronic condition prevalence in the New York City (NYC) area. The data come from the New York City Department of Health and Mental Hygiene (NYC DOHMH) website and are publicly available for download. In addition to exploring relationships between heat vulnerability and chronic condition prevalence, this project also seeks to identify potential community-level disparities that warrant further consideration.
+
+## Intro:
+
+## Heat exposure is a leading cause of weather-related deaths in the United States [3]. Heat exposure is also quite common; more than two-thirds of Americans were under heat alerts in 2023 [4]. Extreme heat is a particularly serious environmental health risk to New York City (NYC) residents. In fact, extreme heat is NYC's deadliest weather hazard, taking more lives than hurricanes, floods, or winter storms [10]. Between 2018 and 2022, there were an average of 525 heat-related deaths per year in NYC [10]. Most of these deaths occur in New Yorkers’ own homes, often without air conditioning (AC) [10]. The risk is greatest among communities already impacted by housing inequities, which disproportionately affects black New Yorkers [10].
+## Approximately 100 heat-exacerbated deaths each year are attributable to the most extreme heat days [10]. Extreme heat days are defined as days that meet the extreme heat advisory threshold in NYC from the National Weather Service [10]. The remaining heat-exacerbated deaths occurred on non-extreme heat days, days below the heat advisory threshold but above 82 degrees Fahrenheit [10]. Although these are not considered extreme weather days, they remain dangerous; the number of these types of days has increased more rapidly over the past decade than extreme heat days [10]. Further, although non-extreme heat days have increased rapidly, home AC rates have remained steady, suggesting AC access is not keeping pace with rising demand [10]. This is dangerous because without AC, indoor temperatures can become much hotter than outdoor temperatures, especially at night, and can persist for days following a heat wave [10].
+## Higher temperatures pose especially serious risks in NYC, where extreme heat can exacerbate the urban heat island effect [11]. Buildings, roads, and other infrastructure absorb and re-emit heat more than natural landscapes such as forests and bodies of water; as a result, urban areas become “islands” of higher temperatures relative to outlying areas [12].
+## While heat exposure is clearly associated with a higher risk of heat exhaustion and heat stroke [5], it also exacerbates multiple chronic conditions [6]. People with chronic conditions may be more vulnerable to heat because they have a reduced ability to sense and respond to temperature changes and may take medications that worsen heat effects [6]. Further, warmer weather traps greenhouse gases in the atmosphere and worsens ozone levels, which can irritate lung tissue [7]. High ozone levels or long-term exposure can worsen respiratory symptoms and conditions, including asthma [7].
+## Similarly, extreme heat events often exacerbate diabetes-related complications [8]. Diabetes can damage blood vessels and nerves, reducing the body’s ability to cool itself effectively [8]. Further, people with diabetes dehydrate more quickly, which is associated with raised blood sugar, and high temperatures can change the way that the body uses insulin [8]. 
+## Lastly, high temperatures and high humidity, in particular, affect people managing hypertension. When exposed to high temperatures, the body redirects blood flow to the skin to cool itself, which can raise blood pressure and increase heart rate; dehydration from sweating also reduces blood volume, further stressing the heart and potentially raising blood pressure [9]. The combination of these two mechanisms can exacerbate existing hypertension and put people at an increased risk of experiencing heart failure, arrhythmias, or acute cardiac events [9].
+## Using a health equity lens, this assessment will use epidemiologic methods to characterize and analyze the relationship between heat vulnerability, geography, and the prevalence of chronic conditions in NYC. 
+
+
+## Methods/Results
+
+## Step 1: Download and Install Packages
+
+library(tidyverse)
+library(sf)
+install.packages("tidycensus")
+library(tidycensus)
+install.packages("janitor")
+library(janitor)
+install.packages("tmap")
+library(tmap)
+library(dplyr)
+library(readr)
+
+## Step 2: Load ZIP code geography
+
+zip_shapes <- st_read("C:/Users/alyss/Downloads/Modified_Zip_Code_Tabulation_Areas_(MODZCTA)_20260605.geojson")
+
+## Step 3: Load Heat Vulnerability Index (HVI)
+
+hvi <- read_csv("C:/Users/alyss/Downloads/Heat_Vulnerability_Index_Rankings_20260605.csv")
+
+clean_names(hvi)
+
+## Step 4: Load Chronic Condition Data
+
+NEWasthma <- read_csv("C:/Users/alyss/Downloads/NEW Asthma Dataset.xlsx - Sheet1.csv")
+NEWdiabetes <- read_csv("C:/Users/alyss/Downloads/NEW Diabetes Dataset.xlsx - Sheet1.csv")
+NEWhypertension <- read_csv("C:/Users/alyss/Downloads/NEW Hypertension Dataset.xlsx - Sheet1.csv")
+
+
+## Step 5: Merge chronic condition data
+
+chroncondition_data1 <- NEWasthma %>%
+  left_join(NEWdiabetes, by = "Zip Code") %>%
+  left_join(NEWhypertension, by= "Zip Code")
+
+## Step 6: Merge with HVI data
+
+hvi <- read_csv("C:/Users/alyss/Downloads/Heat_Vulnerability_Index_Rankings_20260605.csv") %>%
+  clean_names()
+
+hvi <- hvi %>%
+  rename(zip_code = zip_code_tabulation_area_zcta_2020)
+
+NEWasthma <- NEWasthma %>% clean_names()
+NEWdiabetes <- NEWdiabetes %>% clean_names()
+NEWhypertension <- NEWhypertension %>% clean_names()
+
+chroncondition_data1 <- NEWasthma %>%
+  left_join(NEWdiabetes, by = "zip_code") %>%
+  left_join(NEWhypertension, by = "zip_code")
+
+hvi <- read_csv("C:/Users/alyss/Downloads/Heat_Vulnerability_Index_Rankings_20260605.csv") %>%
+  clean_names() %>%
+  rename(zip_code = zip_code_tabulation_area_zcta_2020)
+
+chroncondition_data1 <- chroncondition_data1 %>%
+  mutate(zip_code = as.character(zip_code))
+
+hvi <- hvi %>%
+  mutate(zip_code = as.character(zip_code))
+
+
+NEWanalysis_data <- chroncondition_data1 %>%
+  left_join(hvi, by = "zip_code")
+
+## Step 7: check class
+
+class(NEWanalysis_data$estimated_prevalence.y)
+class(NEWanalysis_data$heat_vulnerability_index_hvi)
+
+## Step 8: Run correlations
+
+## HVI score v. asthma prevalence
+
+cor.test(NEWanalysis_data$heat_vulnerability_index_hvi, NEWanalysis_data$estimated_prevalence.x)
+
+## t-value= 2.4115
+## p-value= 0.0218 (statistically significant)
+## 95% CI: 0.062-0.645
+## cor= 0.392 (weak/moderate linear relationship)
+
+## HVI score v. diabetes prevalence
+
+cor.test(NEWanalysis_data$heat_vulnerability_index_hvi, NEWanalysis_data$estimated_prevalence.y)
+
+## t-value= 2.865
+## p-value= 0.000511 (very statistically significant)
+## 95% CI: 0.279-0.758
+## cor= 0.564 (moderate linear relationship)
+
+## HVI score v. hypertension prevalence
+
+cor.test(NEWanalysis_data$heat_vulnerability_index_hvi, NEWanalysis_data$estimated_prevalence)
+
+## t-value= 2.9141
+## p-value= 0.006461 (very statistically significant)
+## 95% CI: 0.142-0.689
+## cor= 0.457 (moderate linear relationship)
+
+
+## Step 9: Run SLR
+## CAVEAT: Only moderate linear relationships identified between HVI and these 3 chronic conditions, so interpret cautiously
+
+SLRmodel <- lm(NEWanalysis_data$heat_vulnerability_index_hvi ~ NEWanalysis_data$estimated_prevalence.x + NEWanalysis_data$estimated_prevalence.y + NEWanalysis_data$estimated_prevalence)
+summary(SLRmodel)
+
+## Under an SLR, none of the chronic conditions' prevalence were significantly associated with HVI; however, asthma is on the border. Weaker linear relationships between these two variables may be driving these results
+
+## Findings: weak-moderate correlations between HVI and chronic conditions and non-significant regression coefficients
+## Interpretation: Chronic condition prevalence ALONE does not strongly track with HVI at the ZIP level. This makes sense because HVI includes many components,
+## including housing quality, access to AC, green space, poverty, etc. Chronic disease is just one piece of vulnerability.
+
+## Re-framing as descriptive + stratified analysis
+
+## Step 1: Stratify ZIP codes by HVI
+
+NEWanalysis_data <- NEWanalysis_data %>%
+  mutate(hvi_group= ntile(heat_vulnerability_index_hvi, 4)) # quartiles
+
+## Step 2: Compare chronic disease across groups
+
+NEWanalysis_data %>%
+  group_by(hvi_group) %>%
+  summarise(
+    asthma= mean(estimated_prevalence.x, na.rm= TRUE),
+    diabetes= mean(estimated_prevalence.y, na.rm= TRUE),
+    htn= mean(estimated_prevalence, na.rm= TRUE)
+  )
+
+## Output/interpretation: Residents in the highest HVI quartile have a 6% higher asthma prevalence compared to those in the lowest quartile. Residents in the highest HVI quartile have an 8% higher diabetes prevalence compared to those in the lowest quartile. Residents in the highest HVI quartile have a 10% higher htn prevalence compared to those in the lowest quartile
+## Showing patterned inequality
+
+
+## Mapping
+
+## Ensuring same format
+
+zip_shapes$modzcta <- as.character(zip_shapes$modzcta)
+
+NEWanalysis_data$zip_code<- as.character(NEWanalysis_data$zip_code)
+
+## Merge spatial and disease data -- figure out why this isn't working
+
+map_data <- zip_shapes %>%
+  left_join(NEWanalysis_data,
+            by = c("zip_code" = "modzcta"))
+
+## Create a combined disease burden score
+
+map_data <- map_data %>%
+  mutate(
+    asthma_z = scale(Asthma),
+    diabetes_z = scale(Diabetes),
+    hypertension_z = scale(Hypertension),
+    
+    burden_score =
+      asthma_z +
+      diabetes_z +
+      hypertension_z
+  )
+
+## Map it
+
+tm_shape(map_data) +
+  tm_polygons(
+    col = "burden_score",
+    palette = "RdYlBu",
+    style = "quantile"
+  ) +
+  tm_layout(
+    main.title = "Composite Chronic Disease Burden"
+  )
+
+## Aim 2: Create a composite chronic disease burden score and evaluate its association
+## with HVI.
+
+## 1. Create a composite burden score
+
+compositedata <- NEWanalysis_data %>%
+  mutate(
+    asthma_z = as.numeric(scale(NEWasthma)),
+    diabetes_z = as.numeric(scale(NEWdiabetes)),
+    hypertension_z = as.numeric(scale(NEWhypertension))
+  )
+
+## 2. Create composite score
+
+data <- compositedata %>%
+  mutate(
+    burden_score =
+      asthma_z +
+      diabetes_z +
+      hypertension_z
+  )
+
+## 3. Examine correlation with HVI
+
+cor.test(
+  data$HVI,
+  data$burden_score,
+  method = "spearman"
+)
+
+## 4. Fit a SLR
+
+burden_model <- lm(
+  burden_score ~ HVI,
+  data = data
+)
+
+summary(burden_model)
+
+## 5. Create a scatterplot
+
+ggplot(data,
+       aes(x = HVI,
+           y = burden_score)) +
+  
+  geom_jitter(
+    width = 0.15,
+    alpha = 0.6
+  ) +
+  
+  geom_smooth(
+    method = "lm",
+    color = "red",
+    se = TRUE
+  ) +
+  
+  labs(
+    title = "Association Between HVI and Chronic Disease Burden",
+    x = "Heat Vulnerability Index",
+    y = "Composite Chronic Disease Burden Score"
+  ) +
+  
+  theme_minimal()
+
+## 6. Compare mean burden across across HVI groups
+
+ggplot(data,
+       aes(
+         x = factor(HVI),
+         y = burden_score
+       )) +
+  
+  geom_boxplot(
+    fill = "lightblue"
+  ) +
+  
+  labs(
+    title = "Composite Burden Score by HVI Category",
+    x = "HVI Category",
+    y = "Burden Score"
+  ) +
+  
+  theme_minimal()
+
+
+## Another option: show concentration
+
+my_tibble <- NEWanalysis_data %>%
+  arrange(desc(heat_vulnerability_index_hvi)) %>%
+  mutate(cum_pop= row_number()/n(),
+         cum_hvi= cumsum(heat_vulnerability_index_hvi)/sum(heat_vulnerability_index_hvi))
+
+print(my_tibble, n= Inf, width= Inf)
+
+## Zip codes with highest prevalence of asthma (5)
+## 1. 10029
+## 2. 11691
+## 3. 10466
+## 4. 11207
+## 5. 10458
+
+## Zip codes with highest prevalence of diabetes (5)
+## 1. 11004
+## 2. 10029
+## 3. 10458
+## 4. 11412
+## 5. 11691 
+
+## HVI of these zip codes
+## 10029: 4
+## 11691: 5
+## 10466: 5
+## 11207: 5
+## 10458: 5
+## 11004: 3
+## 11412: 5
+
+
+## gives ZIP codes with the highest prevalence
